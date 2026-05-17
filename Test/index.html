@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timer</title>
+    <link rel="stylesheet" href="../src/output.css">
+
+    <style>
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .blink {
+            animation: blink 1s infinite;
+        }
+    </style>
+</head>
+
+<body class="bg-black flex items-center justify-center h-screen">
+
+    <div class="text-center w-full max-w-xl px-4">
+        <h1 class="text-4xl font-bold text-white mb-6">⏳ TIMER</h1>
+
+        <!-- Timer Display -->
+        <div id="timer" class="text-8xl font-mono text-green-400 mb-6 transition-all duration-300">
+            02:00:00
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="w-full bg-gray-700 rounded-full h-4 mb-8 overflow-hidden">
+            <div id="progress" class="bg-green-500 h-4 w-full transition-all duration-1000"></div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="space-x-4">
+            <button onclick="startTimer()" 
+                class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-xl">
+                Start
+            </button>
+
+            <button onclick="pauseTimer()" 
+                class="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-xl">
+                Pause
+            </button>
+
+            <button onclick="resetTimer()" 
+                class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-xl">
+                Reset
+            </button>
+        </div>
+    </div>
+
+<!-- 🔊 Sound -->
+<!-- <audio id="alertSound">
+    <source src="https://www.soundjay.com/button/beep-07.wav" type="audio/wav">
+</audio> -->
+
+<script>
+    let totalSeconds = 2 * 60 * 60; // 2 hours
+    let maxSeconds = totalSeconds;
+    let timerInterval = null;
+    let alertPlayed = false;
+
+    function updateDisplay() {
+        let hours = Math.floor(totalSeconds / 3600);
+        let minutes = Math.floor((totalSeconds % 3600) / 60);
+        let seconds = totalSeconds % 60;
+
+        let timerElement = document.getElementById("timer");
+        let progressBar = document.getElementById("progress");
+
+        timerElement.innerText =
+            String(hours).padStart(2, '0') + ":" +
+            String(minutes).padStart(2, '0') + ":" +
+            String(seconds).padStart(2, '0');
+
+        // Progress bar
+        let percent = (totalSeconds / maxSeconds) * 100;
+        progressBar.style.width = percent + "%";
+
+        // 🔴 Warning at 20 minutes
+        if (totalSeconds <= 1200) {
+            timerElement.classList.remove("text-green-400");
+            timerElement.classList.add("text-red-500", "blink");
+
+            progressBar.classList.remove("bg-green-500");
+            progressBar.classList.add("bg-red-500");
+
+            // play sound once
+            if (!alertPlayed) {
+                document.getElementById("alertSound").play();
+                alertPlayed = true;
+            }
+
+        } else {
+            timerElement.classList.remove("text-red-500", "blink");
+            timerElement.classList.add("text-green-400");
+
+            progressBar.classList.remove("bg-red-500");
+            progressBar.classList.add("bg-green-500");
+        }
+    }
+
+    function startTimer() {
+        if (timerInterval !== null) return;
+
+        timerInterval = setInterval(() => {
+            if (totalSeconds > 0) {
+                totalSeconds--;
+                updateDisplay();
+            } else {
+                clearInterval(timerInterval);
+                timerInterval = null;
+                alert("⏰ Time's up!");
+            }
+        }, 1000);
+    }
+
+    function pauseTimer() {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+
+    function resetTimer() {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        totalSeconds = 2 * 60 * 60;
+        maxSeconds = totalSeconds;
+        alertPlayed = false;
+        updateDisplay();
+    }
+
+    updateDisplay();
+</script>
+
+</body>
+</html>
