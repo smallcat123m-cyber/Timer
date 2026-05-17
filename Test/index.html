@@ -13,7 +13,7 @@
         }
 
         .blink {
-            animation: blink 1s infinite;
+            animation: blink 3s infinite;
         }
     </style>
 </head>
@@ -21,98 +21,124 @@
 <body class="bg-black flex items-center justify-center h-screen">
 
     <div class="text-center w-full max-w-xl px-4">
-        <h1 class="text-4xl font-bold text-white mb-6">⏳ TIMER</h1>
+        <h1 class="text-5xl font-bold text-yellow-500 mb-6">YOU HAVE A TIME </h1>  
 
-        <!-- Timer Display -->
-        <div id="timer" class="text-8xl font-mono text-green-400 mb-6 transition-all duration-300">
+        <div id="timer" class="text-9xl font-mono text-blue-500 mb-6">
             02:00:00
         </div>
 
-        <!-- Progress Bar -->
         <div class="w-full bg-gray-700 rounded-full h-4 mb-8 overflow-hidden">
-            <div id="progress" class="bg-green-500 h-4 w-full transition-all duration-1000"></div>
+            <div id="progress" class="bg-orange-500 h-4 w-full"></div>
         </div>
 
-        <!-- Buttons -->
         <div class="space-x-4">
-            <button onclick="startTimer()" 
-                class="bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-xl">
+            <button onclick="startTimer()" class="bg-green-500 px-6 py-2 rounded-xl text-white">
                 Start
             </button>
 
-            <button onclick="pauseTimer()" 
-                class="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-xl">
+            <button onclick="pauseTimer()" class="bg-yellow-500 px-6 py-2 rounded-xl text-white">
                 Pause
             </button>
 
-            <button onclick="resetTimer()" 
-                class="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-xl">
+            <button onclick="resetTimer()" class="bg-red-500 px-6 py-2 rounded-xl text-white">
                 Reset
             </button>
         </div>
     </div>
 
-<!-- 🔊 Sound -->
-<!-- <audio id="alertSound">
-    <source src="https://www.soundjay.com/button/beep-07.wav" type="audio/wav">
-</audio> -->
-
 <script>
-    let totalSeconds = 2 * 60 * 60; // 2 hours
+    // let min =31;
+    let totalSeconds = 2 *60 *60;
     let maxSeconds = totalSeconds;
     let timerInterval = null;
-    let alertPlayed = false;
+
+    let lastAlertMark = null;
+    let visualAlertActive = false;
 
     function updateDisplay() {
         let hours = Math.floor(totalSeconds / 3600);
         let minutes = Math.floor((totalSeconds % 3600) / 60);
         let seconds = totalSeconds % 60;
 
-        let timerElement = document.getElementById("timer");
-        let progressBar = document.getElementById("progress");
+        let timer = document.getElementById("timer");
+        let progress = document.getElementById("progress");
 
-        timerElement.innerText =
+        timer.innerText =
             String(hours).padStart(2, '0') + ":" +
             String(minutes).padStart(2, '0') + ":" +
             String(seconds).padStart(2, '0');
 
-        // Progress bar
         let percent = (totalSeconds / maxSeconds) * 100;
-        progressBar.style.width = percent + "%";
+        progress.style.width = percent + "%";
 
-        // 🔴 Warning at 20 minutes
-        if (totalSeconds <= 1200) {
-            timerElement.classList.remove("text-green-400");
-            timerElement.classList.add("text-red-500", "blink");
+        
+    
 
-            progressBar.classList.remove("bg-green-500");
-            progressBar.classList.add("bg-red-500");
-
-            // play sound once
-            if (!alertPlayed) {
-                document.getElementById("alertSound").play();
-                alertPlayed = true;
-            }
-
-        } else {
-            timerElement.classList.remove("text-red-500", "blink");
-            timerElement.classList.add("text-green-400");
-
-            progressBar.classList.remove("bg-red-500");
-            progressBar.classList.add("bg-green-500");
+        // 🔴 permanent warning at 15 min
+        if (totalSeconds <= 900) {
+            timer.classList.add("text-blue-500", "blink");
+            timer.classList.remove("text-blue-400");
+            return;
         }
+
+        // 🟡 temporary 30-min alert (blink for few seconds)
+        if (visualAlertActive) {
+            timer.classList.add("text-blue-500", "blink");
+            timer.classList.remove("text-blue-400");
+        } else {
+            timer.classList.remove("text-red-500", "blink");
+            timer.classList.add("text-blue-400");
+        }
+    }
+
+    function triggerVisualAlert() {
+        visualAlertActive = true;
+        updateDisplay();
+
+        // stop blinking after 5 seconds
+        setTimeout(() => {
+            visualAlertActive = false;
+            updateDisplay();
+        }, 15000);
+    }
+
+    function saveTimer() {
+        const endTime = Date.now() + totalSeconds * 1000;
+        localStorage.setItem("endTime", endTime);
     }
 
     function startTimer() {
         if (timerInterval !== null) return;
 
+        saveTimer();
+
         timerInterval = setInterval(() => {
-            if (totalSeconds > 0) {
-                totalSeconds--;
+            const endTime = localStorage.getItem("endTime");
+            if (!endTime) return;
+
+            let remaining = Math.floor((endTime - Date.now()) / 1000);
+
+            if (remaining > 0) {
+                totalSeconds = remaining;
+
+                // 🔔 every 30 minutes → visual alert
+                if (totalSeconds % 1800 === 0 && totalSeconds !== 0) {
+                    if (lastAlertMark !== totalSeconds) {
+                        triggerVisualAlert();
+                        lastAlertMark = totalSeconds;
+                    }
+                }
+
                 updateDisplay();
+
             } else {
                 clearInterval(timerInterval);
                 timerInterval = null;
+                localStorage.removeItem("endTime");
+
+                // final alert
+                visualAlertActive = true;
+                updateDisplay();
                 alert("⏰ Time's up!");
             }
         }, 1000);
@@ -121,18 +147,40 @@
     function pauseTimer() {
         clearInterval(timerInterval);
         timerInterval = null;
+        localStorage.removeItem("endTime");
     }
 
     function resetTimer() {
         clearInterval(timerInterval);
         timerInterval = null;
+
+        localStorage.removeItem("endTime");
+
         totalSeconds = 2 * 60 * 60;
         maxSeconds = totalSeconds;
-        alertPlayed = false;
+        lastAlertMark = null;
+        visualAlertActive = false;
+
         updateDisplay();
     }
 
-    updateDisplay();
+    window.onload = function () {
+        const endTime = localStorage.getItem("endTime");
+
+        if (endTime) {
+            let remaining = Math.floor((endTime - Date.now()) / 1000);
+
+            if (remaining > 0) {
+                totalSeconds = remaining;
+                maxSeconds = remaining;
+                startTimer();
+            } else {
+                localStorage.removeItem("endTime");
+            }
+        }
+
+        updateDisplay();
+    };
 </script>
 
 </body>
